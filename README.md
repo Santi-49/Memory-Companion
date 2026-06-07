@@ -45,9 +45,9 @@ Existe también un **rol de cuidador** (familiar o persona de apoyo) que puede a
 
 ### Cuidador (familiar o apoyo)
 
-1. Accede con su propia cuenta vinculada al perfil del usuario
+1. Accede con su propio usuario dentro de la misma cuenta familiar
 2. Puede ver el **diario de memorias**, los **recordatorios** y el **listado de personas**
-3. Puede añadir información manualmente (personas, eventos pasados) para enriquecer la memoria del sistema
+3. Puede añadir, editar o eliminar información manualmente (personas, eventos pasados y recordatorios)
 4. No puede ver el contenido literal de las conversaciones (privacidad del usuario)
 
 ---
@@ -55,18 +55,22 @@ Existe también un **rol de cuidador** (familiar o persona de apoyo) que puede a
 ## 3. Funcionalidades
 
 ### Para el usuario
+
 - 💬 **Conversación natural** con la IA sobre el pasado, el presente y recordatorios
 - 📖 **Diario automático**: la IA extrae y guarda recuerdos de las conversaciones
+- ✏️ **Edición manual compartida**: también puede crear, editar y eliminar entradas de diario, personas y recordatorios
 - 👥 **Gestión de personas**: recordar quién es quién, qué relación tienen, cómo contactarlos
 - 🔔 **Recordatorios y alertas**: el sistema envía notificaciones en el momento adecuado
 - 🎲 **Memorias proactivas**: la IA recupera recuerdos del pasado y los comparte espontáneamente
 
 ### Para el cuidador
+
 - 👁️ **Panel de revisión**: ver diario, personas y recordatorios
-- ✏️ **Edición manual**: añadir personas o eventos que el usuario no ha mencionado
+- ✏️ **Edición manual compartida**: crear, editar y eliminar diario, personas y recordatorios
 - 🔔 **Alertas de cuidador**: recibir notificaciones si hay cambios relevantes
 
 ### Técnicas (internas)
+
 - **RAG**: búsqueda semántica en memorias, personas y recordatorios → [¿Qué es RAG?](./docs/GUIDE_RAG.md)
 - **Extracción proactiva**: el agente detecta y persiste nueva información automáticamente → [¿Qué es un agente?](./docs/GUIDE_AI_AGENT.md)
 - **Tareas asíncronas**: guardar y buscar en segundo plano para que la conversación sea fluida → [¿Qué es async?](./docs/GUIDE_ASYNC.md)
@@ -78,17 +82,17 @@ Existe también un **rol de cuidador** (familiar o persona de apoyo) que puede a
 > 📖 Para entender qué hace cada tecnología y cómo se relacionan → [GUIDE_TECH_STACK.md](./docs/GUIDE_TECH_STACK.md)
 > 📖 Para entender Python, cómo se organiza el código y cómo funciona FastAPI → [GUIDE_PYTHON.md](./docs/GUIDE_PYTHON.md)
 
-| Capa | Tecnología | Para qué |
-|---|---|---|
-| App móvil | React Native + Expo Go | La app que usa el usuario en su teléfono |
-| Servidor | FastAPI (Python) | Procesa la lógica y conecta con la IA |
-| Orquestación | Docker Compose | Levanta todos los servicios juntos |
-| Base de datos | PostgreSQL + pgvector | Guarda toda la información + búsqueda semántica |
-| IA | Claude API (Anthropic) | El modelo de lenguaje que hace la conversación |
-| Protocolo IA | MCP (tools) | Permite al agente buscar y guardar datos |
-| Tareas async | Celery + Redis | Procesa tareas en segundo plano |
-| Notificaciones | Expo Push + APScheduler | Envía alertas en el momento correcto |
-| Túnel / acceso | Cloudflare Tunnel | Expone el servidor local a internet |
+| Capa           | Tecnología              | Para qué                                        |
+| -------------- | ----------------------- | ----------------------------------------------- |
+| App móvil      | React Native + Expo Go  | La app que usa el usuario en su teléfono        |
+| Servidor       | FastAPI (Python)        | Procesa la lógica y conecta con la IA           |
+| Orquestación   | Docker Compose          | Levanta todos los servicios juntos              |
+| Base de datos  | PostgreSQL + pgvector   | Guarda toda la información + búsqueda semántica |
+| IA             | Claude API (Anthropic)  | El modelo de lenguaje que hace la conversación  |
+| Protocolo IA   | MCP (tools)             | Permite al agente buscar y guardar datos        |
+| Tareas async   | Celery + Redis          | Procesa tareas en segundo plano                 |
+| Notificaciones | Expo Push + APScheduler | Envía alertas en el momento correcto            |
+| Túnel / acceso | Cloudflare Tunnel       | Expone el servidor local a internet             |
 
 ---
 
@@ -98,64 +102,94 @@ Existe también un **rol de cuidador** (familiar o persona de apoyo) que puede a
 
 ---
 
-### `accounts` — Cuentas de usuario
+### `accounts` — Cuenta familiar compartida
 
-| Campo | Tipo | Descripción |
-|---|---|---|
-| `id` | UUID (PK) | Identificador único |
-| `name` | TEXT | Nombre completo |
-| `email` | TEXT | Correo electrónico (único) |
-| `phone` | TEXT | Teléfono |
-| `role` | ENUM | `user` o `caregiver` |
-| `linked_user_id` | UUID (FK → accounts) | Si es cuidador, a qué usuario está vinculado |
-| `push_token` | TEXT | Token para notificaciones push |
-| `created_at` | TIMESTAMP | Fecha de creación |
+| Campo          | Tipo      | Descripción                                    |
+| -------------- | --------- | ---------------------------------------------- |
+| `id`           | UUID (PK) | Identificador único de la cuenta/familia       |
+| `display_name` | TEXT      | Nombre visible de la cuenta (`Familia García`) |
+| `created_at`   | TIMESTAMP | Fecha de creación                              |
+
+> Una cuenta agrupa varios usuarios autenticados: exactamente 1 mayor y 1 o más cuidadores.
+
+---
+
+### `users` — Usuarios autenticados
+
+| Campo           | Tipo                 | Descripción                       |
+| --------------- | -------------------- | --------------------------------- |
+| `id`            | UUID (PK)            | Identificador único del usuario   |
+| `account_id`    | UUID (FK → accounts) | Cuenta/familia a la que pertenece |
+| `username`      | TEXT                 | Usuario de login (único)          |
+| `password_hash` | TEXT                 | Contraseña hasheada               |
+| `role`          | ENUM                 | `senior` o `caregiver`            |
+| `name`          | TEXT                 | Nombre completo                   |
+| `phone`         | TEXT                 | Teléfono                          |
+| `birth_date`    | DATE                 | Fecha de nacimiento (opcional)    |
+| `timezone`      | TEXT                 | Zona horaria del usuario          |
+| `push_token`    | TEXT                 | Token para notificaciones push    |
+| `is_active`     | BOOLEAN              | Si el usuario está activo         |
+| `last_login_at` | TIMESTAMP            | Último inicio de sesión           |
+| `created_at`    | TIMESTAMP            | Fecha de creación                 |
+
+---
+
+### Regla de rol por cuenta
+
+Cada `account_id` debe cumplir:
+
+- 1 usuario con rol `senior`
+- 1 o más usuarios con rol `caregiver`
+
+Esto se puede asegurar con validaciones de negocio y una restricción única parcial para el rol `senior` por cuenta.
 
 ---
 
 ### `conversations` — Conversaciones
 
-| Campo | Tipo | Descripción |
-|---|---|---|
-| `id` | UUID (PK) | Identificador único |
-| `account_id` | UUID (FK → accounts) | A qué usuario pertenece |
-| `started_at` | TIMESTAMP | Cuándo empezó |
-| `ended_at` | TIMESTAMP | Cuándo terminó (null si en curso) |
-| `summary` | TEXT | Resumen generado por la IA al finalizar |
-| `summary_embedding` | VECTOR(1536) | Embedding del resumen para búsqueda semántica |
+| Campo               | Tipo                 | Descripción                                   |
+| ------------------- | -------------------- | --------------------------------------------- |
+| `id`                | UUID (PK)            | Identificador único                           |
+| `account_id`        | UUID (FK → accounts) | Cuenta/familia dueña de la conversación       |
+| `user_id`           | UUID (FK → users)    | Qué usuario inició la conversación            |
+| `started_at`        | TIMESTAMP            | Cuándo empezó                                 |
+| `ended_at`          | TIMESTAMP            | Cuándo terminó (null si en curso)             |
+| `summary`           | TEXT                 | Resumen generado por la IA al finalizar       |
+| `summary_embedding` | VECTOR(1536)         | Embedding del resumen para búsqueda semántica |
 
 ---
 
 ### `messages` — Mensajes individuales
 
-| Campo | Tipo | Descripción |
-|---|---|---|
-| `id` | UUID (PK) | Identificador único |
+| Campo             | Tipo                      | Descripción                  |
+| ----------------- | ------------------------- | ---------------------------- |
+| `id`              | UUID (PK)                 | Identificador único          |
 | `conversation_id` | UUID (FK → conversations) | A qué conversación pertenece |
-| `role` | ENUM | `user` o `assistant` |
-| `content` | TEXT | Contenido del mensaje |
-| `created_at` | TIMESTAMP | Timestamp del mensaje |
+| `role`            | ENUM                      | `user` o `assistant`         |
+| `content`         | TEXT                      | Contenido del mensaje        |
+| `created_at`      | TIMESTAMP                 | Timestamp del mensaje        |
 
 ---
 
 ### `diary_entries` — Diario de memorias
 
-| Campo | Tipo | Descripción |
-|---|---|---|
-| `id` | UUID (PK) | Identificador único |
-| `account_id` | UUID (FK → accounts) | Propietario del recuerdo |
-| `content` | TEXT | Descripción completa del recuerdo |
-| `summary` | TEXT | Resumen corto generado por la IA |
-| `category` | ENUM | `personal`, `family`, `travel`, `health`, `work`, `social`, `other` |
-| `source` | ENUM | `conversation` o `manual` |
-| `date_granularity` | ENUM | `year`, `month`, `day`, `datetime` |
-| `date_year` | INTEGER | Año (null si desconocido) |
-| `date_month` | INTEGER | Mes 1-12 (null si desconocido) |
-| `date_day` | INTEGER | Día 1-31 (null si desconocido) |
-| `date_time` | TIME | Hora exacta (null si desconocido) |
-| `content_embedding` | VECTOR(1536) | Embedding del contenido |
-| `summary_embedding` | VECTOR(1536) | Embedding del resumen |
-| `created_at` | TIMESTAMP | Cuándo se guardó |
+| Campo                | Tipo                 | Descripción                                                         |
+| -------------------- | -------------------- | ------------------------------------------------------------------- |
+| `id`                 | UUID (PK)            | Identificador único                                                 |
+| `account_id`         | UUID (FK → accounts) | Cuenta/familia propietaria                                          |
+| `created_by_user_id` | UUID (FK → users)    | Usuario que creó la entrada manual o detectada                      |
+| `content`            | TEXT                 | Descripción completa del recuerdo                                   |
+| `summary`            | TEXT                 | Resumen corto generado por la IA                                    |
+| `category`           | ENUM                 | `personal`, `family`, `travel`, `health`, `work`, `social`, `other` |
+| `source`             | ENUM                 | `conversation` o `manual`                                           |
+| `date_granularity`   | ENUM                 | `year`, `month`, `day`, `datetime`                                  |
+| `date_year`          | INTEGER              | Año (null si desconocido)                                           |
+| `date_month`         | INTEGER              | Mes 1-12 (null si desconocido)                                      |
+| `date_day`           | INTEGER              | Día 1-31 (null si desconocido)                                      |
+| `date_time`          | TIME                 | Hora exacta (null si desconocido)                                   |
+| `content_embedding`  | VECTOR(1536)         | Embedding del contenido                                             |
+| `summary_embedding`  | VECTOR(1536)         | Embedding del resumen                                               |
+| `created_at`         | TIMESTAMP            | Cuándo se guardó                                                    |
 
 > **¿Por qué tantos campos de fecha?** Las memorias raramente tienen fecha exacta. "Fue un verano de los 80" se guarda con `date_year=1982, date_granularity=year`. Así se puede filtrar aunque la fecha sea parcial.
 
@@ -163,55 +197,57 @@ Existe también un **rol de cuidador** (familiar o persona de apoyo) que puede a
 
 ### `people` — Personas conocidas
 
-| Campo | Tipo | Descripción |
-|---|---|---|
-| `id` | UUID (PK) | Identificador único |
-| `account_id` | UUID (FK → accounts) | A qué usuario pertenece |
-| `name` | TEXT | Nombre completo |
-| `nickname` | TEXT | Apodo o nombre por el que el usuario les llama |
-| `phone` | TEXT | Teléfono |
-| `email` | TEXT | Correo |
-| `relationship` | TEXT | Descripción libre ("mi vecino del 3º que tiene un perro") |
-| `category` | ENUM | `direct_family`, `family`, `friend`, `acquaintance`, `other` |
-| `notes` | TEXT | Notas adicionales |
-| `name_embedding` | VECTOR(1536) | Embedding del nombre y notas |
-| `created_at` | TIMESTAMP | Cuándo se añadió |
+| Campo                | Tipo                 | Descripción                                                  |
+| -------------------- | -------------------- | ------------------------------------------------------------ |
+| `id`                 | UUID (PK)            | Identificador único                                          |
+| `account_id`         | UUID (FK → accounts) | Cuenta/familia propietaria                                   |
+| `created_by_user_id` | UUID (FK → users)    | Usuario que creó o vinculó la persona                        |
+| `name`               | TEXT                 | Nombre completo                                              |
+| `nickname`           | TEXT                 | Apodo o nombre por el que el usuario les llama               |
+| `phone`              | TEXT                 | Teléfono                                                     |
+| `email`              | TEXT                 | Correo                                                       |
+| `relationship`       | TEXT                 | Descripción libre ("mi vecino del 3º que tiene un perro")    |
+| `category`           | ENUM                 | `direct_family`, `family`, `friend`, `acquaintance`, `other` |
+| `notes`              | TEXT                 | Notas adicionales                                            |
+| `name_embedding`     | VECTOR(1536)         | Embedding del nombre y notas                                 |
+| `created_at`         | TIMESTAMP            | Cuándo se añadió                                             |
 
 ---
 
 ### `people_diary` — Relación Personas ↔ Diario
 
-| Campo | Tipo | Descripción |
-|---|---|---|
-| `id` | UUID (PK) | Identificador único |
-| `person_id` | UUID (FK → people) | La persona |
+| Campo            | Tipo                      | Descripción           |
+| ---------------- | ------------------------- | --------------------- |
+| `id`             | UUID (PK)                 | Identificador único   |
+| `person_id`      | UUID (FK → people)        | La persona            |
 | `diary_entry_id` | UUID (FK → diary_entries) | La entrada del diario |
 
 ---
 
 ### `reminders` — Recordatorios
 
-| Campo | Tipo | Descripción |
-|---|---|---|
-| `id` | UUID (PK) | Identificador único |
-| `account_id` | UUID (FK → accounts) | A quién pertenece |
-| `title` | TEXT | Nombre corto ("Médico de cabecera") |
-| `description` | TEXT | Descripción detallada |
-| `remind_at` | TIMESTAMP | Cuándo enviar la notificación |
-| `recurrence` | ENUM | `none`, `daily`, `weekly`, `monthly`, `yearly` |
-| `is_sent` | BOOLEAN | Si ya se envió |
-| `source` | ENUM | `conversation` o `manual` |
-| `created_at` | TIMESTAMP | Cuándo se creó |
+| Campo                | Tipo                 | Descripción                                    |
+| -------------------- | -------------------- | ---------------------------------------------- |
+| `id`                 | UUID (PK)            | Identificador único                            |
+| `account_id`         | UUID (FK → accounts) | Cuenta/familia propietaria                     |
+| `created_by_user_id` | UUID (FK → users)    | Usuario que creó o actualizó el recordatorio   |
+| `title`              | TEXT                 | Nombre corto ("Médico de cabecera")            |
+| `description`        | TEXT                 | Descripción detallada                          |
+| `remind_at`          | TIMESTAMP            | Cuándo enviar la notificación                  |
+| `recurrence`         | ENUM                 | `none`, `daily`, `weekly`, `monthly`, `yearly` |
+| `is_sent`            | BOOLEAN              | Si ya se envió                                 |
+| `source`             | ENUM                 | `conversation` o `manual`                      |
+| `created_at`         | TIMESTAMP            | Cuándo se creó                                 |
 
 ---
 
 ### `people_reminders` — Relación Personas ↔ Recordatorios
 
-| Campo | Tipo | Descripción |
-|---|---|---|
-| `id` | UUID (PK) | Identificador único |
-| `person_id` | UUID (FK → people) | La persona |
-| `reminder_id` | UUID (FK → reminders) | El recordatorio |
+| Campo         | Tipo                  | Descripción         |
+| ------------- | --------------------- | ------------------- |
+| `id`          | UUID (PK)             | Identificador único |
+| `person_id`   | UUID (FK → people)    | La persona          |
+| `reminder_id` | UUID (FK → reminders) | El recordatorio     |
 
 ---
 
@@ -220,13 +256,13 @@ Existe también un **rol de cuidador** (familiar o persona de apoyo) que puede a
 ```
 accounts
   │
-  ├──── conversations ──── messages
-  │
-  ├──── diary_entries ──── people_diary ──── people
-  │                                              │
-  ├──── reminders ────── people_reminders ───────┘
-  │
-  └──── (linked_user_id → accounts) [cuidador]
+  ├──── users (1 senior + N caregivers)
+  │      │
+  │      ├──── conversations ──── messages
+  │      │
+  │      ├──── diary_entries ──── people_diary ──── people
+  │      │                                              │
+  │      └──── reminders ────── people_reminders ───────┘
 ```
 
 ---
@@ -256,23 +292,23 @@ Usuario → App → FastAPI → Agente IA  →  Respuesta rápida al usuario
 
 **Lectura (búsqueda):**
 
-| Tool | Qué hace |
-|---|---|
-| `search_people` | Busca personas por nombre, categoría o relación |
-| `search_diary` | Busca memorias por fecha, contenido semántico, categoría o personas |
-| `search_reminders` | Busca recordatorios por fecha, contenido o personas |
+| Tool                | Qué hace                                                               |
+| ------------------- | ---------------------------------------------------------------------- |
+| `search_people`     | Busca personas por nombre, categoría o relación                        |
+| `search_diary`      | Busca memorias por fecha, contenido semántico, categoría o personas    |
+| `search_reminders`  | Busca recordatorios por fecha, contenido o personas                    |
 | `get_random_memory` | Obtiene una memoria aleatoria (para recordar momentos espontáneamente) |
 
 **Escritura:**
 
-| Tool | Qué hace |
-|---|---|
-| `create_diary_entry` | Guarda un recuerdo nuevo |
+| Tool                 | Qué hace                        |
+| -------------------- | ------------------------------- |
+| `create_diary_entry` | Guarda un recuerdo nuevo        |
 | `update_diary_entry` | Actualiza un recuerdo existente |
-| `create_person` | Añade una persona nueva |
-| `update_person` | Actualiza datos de una persona |
-| `create_reminder` | Crea un recordatorio |
-| `delete_reminder` | Elimina un recordatorio |
+| `create_person`      | Añade una persona nueva         |
+| `update_person`      | Actualiza datos de una persona  |
+| `create_reminder`    | Crea un recordatorio            |
+| `delete_reminder`    | Elimina un recordatorio         |
 
 ### Instrucciones del Agente (System Prompt)
 
@@ -286,6 +322,7 @@ El agente opera con instrucciones permanentes:
 ### Notificaciones Proactivas
 
 Un proceso separado (APScheduler) revisa periódicamente:
+
 - Recordatorios del día → envía notificación push
 - Cumpleaños de personas → mensaje de aviso
 - Selección semanal de memoria aleatoria → "Esta semana de hace X años..."
@@ -299,6 +336,7 @@ Un proceso separado (APScheduler) revisa periódicamente:
 La API está construida con FastAPI y se documenta automáticamente en `http://localhost:8000/docs` durante el desarrollo.
 
 Todos los endpoints (excepto login/registro) requieren autenticación con token JWT:
+
 ```
 Authorization: Bearer <token>
 ```
@@ -307,79 +345,77 @@ Authorization: Bearer <token>
 
 ### Auth
 
-| Método | Endpoint | Descripción |
-|---|---|---|
-| `POST` | `/auth/register` | Registrar nueva cuenta |
-| `POST` | `/auth/login` | Iniciar sesión, devuelve token JWT |
-| `POST` | `/auth/link-caregiver` | Vincular cuenta de cuidador a un usuario |
+| Método | Endpoint                 | Descripción                                               |
+| ------ | ------------------------ | --------------------------------------------------------- |
+| `POST` | `/auth/register`         | Crear cuenta y registrar el primer usuario (rol `senior`) |
+| `POST` | `/auth/login`            | Iniciar sesión, devuelve token JWT                        |
+| `POST` | `/auth/invite-caregiver` | Añadir un nuevo usuario con rol `caregiver` a la cuenta   |
 
 ---
 
 ### Conversaciones
 
-| Método | Endpoint | Descripción |
-|---|---|---|
-| `POST` | `/conversations/` | Iniciar nueva conversación |
-| `POST` | `/conversations/{id}/messages` | Enviar mensaje al agente y recibir respuesta |
-| `GET` | `/conversations/` | Listar conversaciones del usuario |
-| `GET` | `/conversations/{id}` | Ver detalle de una conversación |
-| `PATCH` | `/conversations/{id}/end` | Finalizar conversación (dispara resumen async) |
+| Método  | Endpoint                       | Descripción                                    |
+| ------- | ------------------------------ | ---------------------------------------------- |
+| `POST`  | `/conversations/`              | Iniciar nueva conversación                     |
+| `POST`  | `/conversations/{id}/messages` | Enviar mensaje al agente y recibir respuesta   |
+| `GET`   | `/conversations/`              | Listar conversaciones del usuario              |
+| `GET`   | `/conversations/{id}`          | Ver detalle de una conversación                |
+| `PATCH` | `/conversations/{id}/end`      | Finalizar conversación (dispara resumen async) |
 
 ---
 
 ### Diario
 
-| Método | Endpoint | Descripción |
-|---|---|---|
-| `GET` | `/diary/` | Listar entradas (filtros: fecha, categoría, persona, búsqueda semántica) |
-| `GET` | `/diary/{id}` | Ver entrada específica |
-| `POST` | `/diary/` | Crear entrada manualmente (cuidador) |
-| `PATCH` | `/diary/{id}` | Actualizar entrada |
-| `DELETE` | `/diary/{id}` | Eliminar entrada |
+| Método   | Endpoint      | Descripción                                                              |
+| -------- | ------------- | ------------------------------------------------------------------------ |
+| `GET`    | `/diary/`     | Listar entradas (filtros: fecha, categoría, persona, búsqueda semántica) |
+| `GET`    | `/diary/{id}` | Ver entrada específica                                                   |
+| `POST`   | `/diary/`     | Crear entrada manualmente (mayor o cuidador)                             |
+| `PATCH`  | `/diary/{id}` | Actualizar entrada (mayor o cuidador)                                    |
+| `DELETE` | `/diary/{id}` | Eliminar entrada (mayor o cuidador)                                      |
 
 ---
 
 ### Personas
 
-| Método | Endpoint | Descripción |
-|---|---|---|
-| `GET` | `/people/` | Listar personas (filtros: categoría, búsqueda semántica) |
-| `GET` | `/people/{id}` | Ver persona específica |
-| `POST` | `/people/` | Crear persona |
-| `PATCH` | `/people/{id}` | Actualizar persona |
-| `DELETE` | `/people/{id}` | Eliminar persona |
+| Método   | Endpoint       | Descripción                                              |
+| -------- | -------------- | -------------------------------------------------------- |
+| `GET`    | `/people/`     | Listar personas (filtros: categoría, búsqueda semántica) |
+| `GET`    | `/people/{id}` | Ver persona específica                                   |
+| `POST`   | `/people/`     | Crear persona (mayor o cuidador)                         |
+| `PATCH`  | `/people/{id}` | Actualizar persona (mayor o cuidador)                    |
+| `DELETE` | `/people/{id}` | Eliminar persona (mayor o cuidador)                      |
 
 ---
 
 ### Recordatorios
 
-| Método | Endpoint | Descripción |
-|---|---|---|
-| `GET` | `/reminders/` | Listar recordatorios |
-| `POST` | `/reminders/` | Crear recordatorio |
-| `PATCH` | `/reminders/{id}` | Actualizar recordatorio |
-| `DELETE` | `/reminders/{id}` | Eliminar recordatorio |
+| Método   | Endpoint          | Descripción                                |
+| -------- | ----------------- | ------------------------------------------ |
+| `GET`    | `/reminders/`     | Listar recordatorios                       |
+| `POST`   | `/reminders/`     | Crear recordatorio (mayor o cuidador)      |
+| `PATCH`  | `/reminders/{id}` | Actualizar recordatorio (mayor o cuidador) |
+| `DELETE` | `/reminders/{id}` | Eliminar recordatorio (mayor o cuidador)   |
 
 ---
 
 ### Notificaciones
 
-| Método | Endpoint | Descripción |
-|---|---|---|
-| `POST` | `/notifications/push-token` | Registrar token de dispositivo |
-| `GET` | `/notifications/history` | Historial de notificaciones enviadas |
+| Método | Endpoint                    | Descripción                          |
+| ------ | --------------------------- | ------------------------------------ |
+| `POST` | `/notifications/push-token` | Registrar token de dispositivo       |
+| `GET`  | `/notifications/history`    | Historial de notificaciones enviadas |
 
 ---
 
-### Cuidador
+### Acceso compartido por cuenta
 
-| Método | Endpoint | Descripción |
-|---|---|---|
-| `GET` | `/caregiver/user/{user_id}/diary` | Ver diario del usuario vinculado |
-| `GET` | `/caregiver/user/{user_id}/people` | Ver personas del usuario vinculado |
-| `GET` | `/caregiver/user/{user_id}/reminders` | Ver recordatorios del usuario vinculado |
-| `POST` | `/caregiver/user/{user_id}/diary` | Añadir entrada manual |
-| `POST` | `/caregiver/user/{user_id}/people` | Añadir persona al perfil del usuario |
+| Método   | Endpoint                     | Descripción                                       |
+| -------- | ---------------------------- | ------------------------------------------------- |
+| `GET`    | `/account/members`           | Listar usuarios de la cuenta (mayor y cuidadores) |
+| `POST`   | `/account/members`           | Añadir cuidador a la cuenta                       |
+| `DELETE` | `/account/members/{user_id}` | Eliminar cuidador de la cuenta                    |
 
 ---
 
@@ -470,10 +506,10 @@ Proceso paralelo (APScheduler):
 
 ### Ramas
 
-| Rama | Propósito |
-|---|---|
-| `main` | Código estable |
-| `develop` | Integración de features |
+| Rama          | Propósito                  |
+| ------------- | -------------------------- |
+| `main`        | Código estable             |
+| `develop`     | Integración de features    |
 | `feature/xxx` | Una funcionalidad concreta |
 
 ---
@@ -484,9 +520,9 @@ Proceso paralelo (APScheduler):
 
 ### Resumen rápido
 
-| Fase | Estado | Descripción |
-|---|---|---|
-| **Local** | ✅ Primera fase | Todo en el mismo ordenador, Expo Go para la app |
+| Fase                 | Estado          | Descripción                                            |
+| -------------------- | --------------- | ------------------------------------------------------ |
+| **Local**            | ✅ Primera fase | Todo en el mismo ordenador, Expo Go para la app        |
 | **Túnel Cloudflare** | ✅ Primera fase | Acceso externo sin servidor, dominio gratuito temporal |
-| **Servidor 24/7** | 🔜 Segunda fase | Servidor siempre encendido con dominio propio |
-| **App Stores** | 🔜 Futuro | Publicar en Google Play y App Store |
+| **Servidor 24/7**    | 🔜 Segunda fase | Servidor siempre encendido con dominio propio          |
+| **App Stores**       | 🔜 Futuro       | Publicar en Google Play y App Store                    |
