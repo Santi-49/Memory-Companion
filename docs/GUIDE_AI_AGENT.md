@@ -27,7 +27,7 @@ Chatbot: "Lo siento, no tengo acceso a información en tiempo real."
 
 ### Agente
 
-Un agente puede **usar herramientas** (tools) para obtener información o ejecutar acciones antes de responder. No está limitado a lo que "sabe" de su entrenamiento.
+Un agente no lo define solo el modelo: lo definen el **system prompt** y las **tools** disponibles. Gracias a eso puede **usar herramientas** para obtener información o ejecutar acciones antes de responder.
 
 ```
 Usuario: "¿Cuándo fue mi última visita al médico?"
@@ -41,11 +41,62 @@ El agente decide **cuándo y qué tools usar** de forma autónoma, según la pre
 
 ---
 
+## ¿Qué son los MCPs, las Tools y las Herramientas?
+
+Esta es la capa que **conecta** al agente con el resto del sistema. El modelo por sí solo solo genera texto, pero gracias a los **MCPs** y a las **tools/herramientas** puede consultar datos, ejecutar acciones y devolver respuestas útiles.
+
+### ¿Qué es un MCP?
+
+**MCP** significa **Model Context Protocol**. Es un estándar para que un agente pueda hablar con herramientas externas de forma ordenada y reusable.
+
+Piensa en el MCP como un **puente** o una **capa de conexión** entre la IA y los servicios que sabe usar. En lugar de integrar cada herramienta de forma distinta, el MCP define una forma común de exponerlas.
+
+### ¿Qué es una tool o herramienta?
+
+Una **tool** es una función que el agente puede llamar cuando necesita algo que el modelo no puede inventar por sí solo.
+
+Ejemplos:
+
+- Buscar en el diario
+- Buscar personas
+- Crear un recordatorio
+- Consultar datos en PostgreSQL
+
+### ¿Cómo trabajan juntos?
+
+```
+Usuario pregunta
+        │
+        ▼
+Agente IA decide si necesita ayuda
+        │
+        ▼
+MCP expone las tools disponibles
+        │
+        ├── search_diary
+        ├── search_people
+        ├── search_reminders
+        └── create_* / update_* / delete_*
+        │
+        ▼
+La tool consulta el servidor o la base de datos
+        │
+        ▼
+El agente recibe el resultado y responde
+```
+
+### Por qué es importante
+
+Sin MCPs ni tools, el agente solo puede responder con lo que “cree saber”. Con esta capa, puede **conectar** con datos reales y actuar sobre el sistema de MemoryCompanion de forma segura y controlada.
+
+---
+
 ## ¿Qué es el System Prompt?
 
 Antes de que empiece la conversación, se le dan al agente instrucciones permanentes que definen su comportamiento. Esto es el **system prompt**.
 
 En MemoryCompanion el system prompt incluye cosas como:
+
 - "Eres un compañero amable para personas mayores. Habla de forma simple y pausada."
 - "Después de cada respuesta, analiza si el usuario mencionó una persona nueva o un recuerdo y guárdalo."
 - "Si el usuario pregunta por alguien, primero busca en la base de datos de personas."
@@ -65,6 +116,7 @@ Para un agente conversacional, la latencia ideal es **menos de 3 segundos**. Si 
 ### ¿Por qué la inferencia cuesta dinero?
 
 Los LLMs se ejecutan en servidores con hardware muy potente (GPUs). Anthropic (la empresa detrás de Claude) cobra por el uso de su API según:
+
 - **Tokens de entrada**: cuánto texto le mandas al modelo (historial de conversación + contexto)
 - **Tokens de salida**: cuánto texto genera el modelo en la respuesta
 
@@ -99,12 +151,12 @@ Usuario habla (voz) → App → STT convierte voz a texto
 
 ### Opciones técnicas para TTS
 
-| Servicio | Calidad | Coste | Notas |
-|---|---|---|---|
-| **Expo Speech** (nativo) | Media | Gratis | Funciona sin API externa, voz robótica |
-| **OpenAI TTS** | Alta | ~$0.015/1000 chars | Voces muy naturales |
-| **ElevenLabs** | Muy alta | Desde gratis (limitado) | Ideal para una voz personalizada |
-| **Google Cloud TTS** | Alta | Desde gratis (limitado) | Buen soporte de español |
+| Servicio                 | Calidad  | Coste                   | Notas                                  |
+| ------------------------ | -------- | ----------------------- | -------------------------------------- |
+| **Expo Speech** (nativo) | Media    | Gratis                  | Funciona sin API externa, voz robótica |
+| **OpenAI TTS**           | Alta     | ~$0.015/1000 chars      | Voces muy naturales                    |
+| **ElevenLabs**           | Muy alta | Desde gratis (limitado) | Ideal para una voz personalizada       |
+| **Google Cloud TTS**     | Alta     | Desde gratis (limitado) | Buen soporte de español                |
 
 Para el prototipo, **Expo Speech** es suficiente y gratis. Para una versión más pulida, OpenAI TTS o ElevenLabs dan una experiencia mucho más humana.
 
