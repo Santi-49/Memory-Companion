@@ -25,7 +25,7 @@ Todo corre en tu ordenador. Solo funciona si el ordenador está encendido y en l
 docker-compose up -d
 ```
 
-Levanta todos los servicios: API en `http://localhost:8000`, PostgreSQL, Redis, Celery, Scheduler.
+Levanta los servicios del MVP: API en `http://localhost:8000`, PostgreSQL, Redis y Scheduler.
 
 ### App móvil
 
@@ -206,7 +206,7 @@ Expo permite enviar **actualizaciones over-the-air (OTA)**: cambios en el códig
 | Servidor local (ordenador propio) | $0 |
 | Cloudflare Tunnel | $0 |
 | Dominio `.com` | ~$10/año |
-| Claude API (uso moderado, ~100 conversaciones/mes) | ~$5-15/mes |
+| Proveedor LLM (uso moderado, ~100 conversaciones/mes) | ~$5-15/mes |
 | Expo Go (desarrollo) | $0 |
 | **Total mensual** | **~$5-15/mes** |
 | **Total primer año** | **~$70-190** |
@@ -218,7 +218,7 @@ Expo permite enviar **actualizaciones over-the-air (OTA)**: cambios en el códig
 | Servidor Railway/Render (plan básico) | ~$10/mes |
 | Base de datos PostgreSQL (incluida o Railway add-on) | ~$5/mes |
 | Dominio `.com` | ~$10/año |
-| Claude API (~500 conversaciones/mes) | ~$20-50/mes |
+| Proveedor LLM (~500 conversaciones/mes) | ~$20-50/mes |
 | EAS Build (compilar apps) | $0 (plan gratis: 30 builds/mes) |
 | Google Play Developer | $25 (único) |
 | **Total mensual** | **~$35-65/mes** |
@@ -231,12 +231,12 @@ Expo permite enviar **actualizaciones over-the-air (OTA)**: cambios en el códig
 | VPS DigitalOcean 2GB | $12/mes |
 | Base de datos managed | $15/mes |
 | Dominio | $10/año |
-| Claude API (~2000 conv/mes) | $80-150/mes |
+| Proveedor LLM (~2000 conv/mes) | $80-150/mes |
 | Apple Developer | $99/año |
 | EAS Production plan | $29/mes |
 | **Total mensual** | **~$136-206/mes** |
 
-> Los costes de Claude API dependen mucho de la longitud de las conversaciones y del contexto que se incluya en cada llamada. Con usuarios activos y diarios largos, puede ser el mayor coste del sistema.
+> Los costes del proveedor LLM dependen mucho de la longitud de las conversaciones y del contexto que se incluya en cada llamada. Con usuarios activos y diarios largos, puede ser el mayor coste del sistema.
 
 ---
 

@@ -44,8 +44,7 @@ Puedes tener múltiples contenedores corriendo a la vez, cada uno aislado de los
 En MemoryCompanion necesitamos varios servicios corriendo a la vez:
 - El servidor FastAPI
 - PostgreSQL (base de datos)
-- Redis (cola de mensajes)
-- El worker de Celery
+- Redis (invalidacion de JWT, invitaciones, cache ligera)
 - El scheduler de notificaciones
 
 Levantar cada uno por separado sería tedioso. **Docker Compose** permite definir todos los servicios en un único archivo (`docker-compose.yml`) y levantarlos todos con un solo comando.
@@ -82,13 +81,6 @@ services:
       DATABASE_URL: postgresql://...
       REDIS_URL: redis://redis:6379
 
-  worker:
-    build: .
-    command: celery worker
-    depends_on:
-      - redis
-      - db
-
   scheduler:
     build: .
     command: python scheduler.py
@@ -113,7 +105,7 @@ docker-compose ps
 
 # Ver los logs de un servicio concreto
 docker-compose logs api
-docker-compose logs worker
+docker-compose logs scheduler
 
 # Parar todos los servicios
 docker-compose down
@@ -173,7 +165,6 @@ Tu ordenador
 │       ├── Contenedor: api      (puerto 8000)            │
 │       ├── Contenedor: db       (puerto 5432)            │
 │       ├── Contenedor: redis    (puerto 6379)            │
-│       ├── Contenedor: worker   (sin puerto)             │
 │       └── Contenedor: scheduler(sin puerto)             │
 │                                                         │
 │  Todos se comunican entre sí por nombre de servicio     │

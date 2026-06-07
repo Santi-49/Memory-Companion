@@ -1,6 +1,6 @@
 # ⚡ GUIDE: Tareas Asíncronas
 
-> Este documento explica qué es una tarea asíncrona, por qué es clave para que el agente sea rápido, y cómo funcionan Celery y Redis en MemoryCompanion.
+> Este documento explica qué es una tarea asíncrona, por qué es clave para que el agente sea rápido, y qué se usa en el MVP de MemoryCompanion.
 
 ---
 
@@ -41,7 +41,7 @@ Una **cola de mensajes** es un sistema donde puedes poner tareas pendientes y ot
 Funciona como una cola de espera real: las tareas se añaden por un lado y se procesan por el otro, en orden.
 
 ```
-FastAPI (productor)          Cola (Redis)          Worker (consumidor)
+FastAPI (productor)          Cola                  Worker (consumidor)
         │                                                  │
         │ → "guarda este recuerdo en BD" ──────────────►  │
         │                                                  │ procesa tarea
@@ -51,21 +51,26 @@ FastAPI (productor)          Cola (Redis)          Worker (consumidor)
 
 ---
 
-## ¿Qué es Redis?
+## ¿Qué es Redis en este MVP?
 
-**Redis** es una base de datos en memoria, extremadamente rápida, que se usa como **cola de mensajes** en MemoryCompanion.
+**Redis** es una base de datos en memoria, extremadamente rápida.
 
-Cuando FastAPI quiere delegar una tarea, escribe en Redis. Celery lee de Redis y ejecuta la tarea. Redis actúa de intermediario.
+En el MVP de MemoryCompanion se mantiene Redis, pero no como cola principal de tareas.
 
-Redis también puede usarse como caché (para no repetir cálculos que ya se hicieron), aunque en este proyecto su rol principal es la cola de Celery.
+Usos previstos:
+
+- Invalidación de JWT al cerrar sesión o revocar acceso.
+- Invitaciones temporales para cuidadores.
+- Rate limiting sencillo.
+- Caché ligera para datos repetidos.
 
 ---
 
-## ¿Qué es Celery?
+## ¿Y Celery?
 
-**Celery** es una librería de Python para gestionar tareas asíncronas. Es el "worker" que procesa las tareas que FastAPI encola en Redis.
+**Celery** es una librería Python para gestionar tareas asíncronas distribuidas. Es útil cuando hay workers separados, retries robustos, trabajos largos o mucho volumen.
 
-En MemoryCompanion, Celery se encarga de:
+Para el MVP no se incluye como dependencia base. Es una posible evolución futura.
 
 | Tarea | Cuándo se dispara |
 |---|---|
@@ -77,7 +82,7 @@ En MemoryCompanion, Celery se encarga de:
 
 ---
 
-## El flujo completo en MemoryCompanion
+## El flujo completo en el MVP
 
 ```
 1. Usuario envía mensaje
@@ -95,10 +100,10 @@ En MemoryCompanion, Celery se encarga de:
         │
         │ (en paralelo, sin que el usuario espere)
         ▼
-6. FastAPI encola en Redis:
+6. FastAPI procesa la extracción de forma ligera:
    → "crear persona: Pedro, hermano, teléfono desconocido"
 
-7. Celery Worker (proceso separado) coge la tarea:
+7. El backend guarda los datos:
    → Crea la persona en PostgreSQL
    → Genera el embedding del nombre+notas
    → Guarda el embedding en la BD
@@ -124,19 +129,18 @@ Si el usuario habla durante 20 minutos y menciona muchas cosas, todas se guardan
 ## Resumen visual de los procesos
 
 ```
-Tu servidor corre 3 tipos de procesos simultáneamente:
+Tu servidor MVP corre estos procesos:
 
 ┌─────────────────┐   ┌─────────────────┐   ┌─────────────────┐
-│   FastAPI       │   │  Celery Worker  │   │  APScheduler    │
+│   FastAPI       │   │     Redis       │   │  APScheduler    │
 │                 │   │                 │   │                 │
-│ - Recibe HTTP   │   │ - Lee tareas    │   │ - Cada hora:    │
-│ - Llama al      │   │   de Redis      │   │   revisa        │
-│   agente IA     │   │ - Guarda en BD  │   │   reminders     │
-│ - Responde      │   │ - Genera        │   │ - Envía push    │
-│   rápido        │   │   embeddings    │   │   notifications │
-│ - Encola tasks  │   │                 │   │                 │
+│ - Recibe HTTP   │   │ - JWT blacklist │   │ - Cada hora:    │
+│ - Llama al      │   │ - Invitaciones  │   │   revisa        │
+│   agente IA     │   │ - Cache ligera  │   │   reminders     │
+│ - Responde      │   │ - Rate limits   │   │ - Envía push    │
+│   rápido        │   │                 │   │   notifications │
+│ - Guarda datos  │   │                 │   │                 │
 └─────────────────┘   └─────────────────┘   └─────────────────┘
-         │                     ▲
-         │   Redis (cola)      │
-         └────────────────────►┘
 ```
+
+Si más adelante la extracción, los embeddings o las notificaciones crecen demasiado, se puede añadir una cola real y un worker separado.

@@ -16,18 +16,18 @@
 ┌─────────────────────────────────────────────────────────────────┐
 │                      BACKEND (Docker Compose)                   │
 │                                                                 │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────────┐  │
-│  │ FastAPI  │  │  Celery  │  │  APSched │  │    Redis     │  │
-│  │ (API)    │  │ (Worker) │  │ (Notif.) │  │   (Cola)     │  │
-│  └────┬─────┘  └────┬─────┘  └────┬─────┘  └──────────────┘  │
-│       │              │              │                           │
-│       └──────────────┴──────────────┴───────────┐              │
+│  ┌──────────┐  ┌──────────┐  ┌──────────────┐                 │
+│  │ FastAPI  │  │ APSched  │  │    Redis     │                 │
+│  │ (API)    │  │ (Notif.) │  │ Auth/Cache   │                 │
+│  └────┬─────┘  └────┬─────┘  └──────┬───────┘                 │
+│       │              │               │                         │
+│       └──────────────┴───────────────┴─────────┐              │
 │                                                  ▼              │
 │                                    ┌─────────────────────────┐ │
 │                                    │  PostgreSQL + pgvector  │ │
 │                                    └─────────────────────────┘ │
 │                                                                 │
-│  FastAPI ──► Claude API (Anthropic) ──► MCP Tools              │
+│  FastAPI ──► LLM Provider ──► Tools internas / MCP opcional    │
 └─────────────────────────────────────────────────────────────────┘
                             │
                     Cloudflare Tunnel
@@ -64,11 +64,12 @@
 
 ### Python
 - **Qué es**: lenguaje de programación
-- **Por qué**: ecosistema de IA/ML sin rival, las librerías de Anthropic (Claude), pgvector y Celery son todas Python
+- **Por qué**: ecosistema de IA/ML sin rival, buenas librerías para FastAPI, proveedores LLM, PostgreSQL y pgvector
 
-### Celery
-- **Qué es**: librería Python para tareas asíncronas distribuidas
-- **Por qué**: permite delegar trabajo pesado (guardar embeddings, procesar datos) sin bloquear la respuesta al usuario
+### Tareas en segundo plano
+- **Qué es**: trabajo que el backend puede hacer después de responder al usuario
+- **MVP**: tareas ligeras dentro de FastAPI o procesos simples
+- **Futuro**: Celery, RQ o Dramatiq si hacen falta retries robustos o workers separados
 - **Ver**: [GUIDE_ASYNC.md](./GUIDE_ASYNC.md)
 
 ### APScheduler
@@ -91,28 +92,29 @@
 
 ### Redis
 - **Qué es**: base de datos en memoria, extremadamente rápida
-- **Por qué**: actúa como cola de mensajes entre FastAPI y Celery; también puede usarse como caché
+- **Por qué**: invalidación de JWT, invitaciones temporales de cuidadores, rate limiting y caché ligera
 - **Ver**: [GUIDE_ASYNC.md](./GUIDE_ASYNC.md)
 
 ---
 
 ## Inteligencia Artificial
 
-### Claude API (Anthropic)
-- **Qué es**: API para acceder al modelo de lenguaje Claude
-- **Por qué**: conversación natural de alta calidad, soporte nativo de tools/MCP, buenas capacidades de seguir instrucciones complejas
-- **Modelo usado**: Claude Sonnet (balance entre calidad y coste)
+### Proveedor LLM
+- **Qué es**: API para acceder a un modelo de lenguaje como Claude, OpenAI o Gemini
+- **Por qué**: genera la conversación, resume, extrae datos estructurados y decide cuándo usar tools
+- **Estado**: proveedor por definir; Claude es una opción candidata
 - **Ver**: [GUIDE_AI_AGENT.md](./GUIDE_AI_AGENT.md)
 
-### MCP (Model Context Protocol)
-- **Qué es**: protocolo de Anthropic para conectar la IA con herramientas externas de forma estandarizada
-- **Por qué**: permite al agente buscar en la BD, guardar datos y ejecutar acciones de forma estructurada y segura
+### Tools / MCP
+- **Qué es**: capa que permite al agente buscar datos o ejecutar acciones
+- **MVP**: tool calling interno desde FastAPI
+- **Futuro**: MCP si interesa estandarizar herramientas reutilizables
 - **Ver**: [GUIDE_AI_AGENT.md](./GUIDE_AI_AGENT.md)
 
 ### Embeddings
 - **Qué es**: representaciones vectoriales del significado de textos
 - **Por qué**: necesarios para la búsqueda semántica (RAG)
-- **Proveedor**: se pueden usar los embeddings de Anthropic o OpenAI (text-embedding-3-small)
+- **Proveedor**: pendiente de decidir; no se debe fijar todavía una dimensión concreta de vector
 - **Ver**: [GUIDE_RAG.md](./GUIDE_RAG.md)
 
 ---
@@ -143,12 +145,12 @@
 | React Native | Frontend | Gratis | Media |
 | Expo / Expo Go | Frontend | Gratis (dev) | Baja |
 | FastAPI | Backend | Gratis | Media |
-| Celery | Backend | Gratis | Media |
+| Tareas en segundo plano | Backend | Gratis | Baja-Media |
 | APScheduler | Backend | Gratis | Baja |
 | PostgreSQL | Base de datos | Gratis | Baja |
 | pgvector | Base de datos | Gratis | Baja |
 | Redis | Infraestructura | Gratis | Baja |
 | Docker Compose | Infraestructura | Gratis | Media |
-| Claude API | IA | **De pago** (por uso) | Baja |
+| Proveedor LLM | IA | **De pago** (por uso) | Baja |
 | Cloudflare Tunnel | Deployment | Gratis | Baja |
 | Dominio | Deployment | ~$10/año | Baja |

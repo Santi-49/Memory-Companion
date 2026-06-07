@@ -12,7 +12,7 @@ Python es especialmente popular porque:
 - Su sintaxis es muy legible (se parece al inglés)
 - Tiene una comunidad enorme y millones de librerías gratuitas
 - Es el lenguaje dominante en Inteligencia Artificial y ciencia de datos
-- Es el lenguaje de FastAPI, Celery, y todas las librerías de IA que usamos
+- Es el lenguaje de FastAPI y de muchas librerías de IA, bases de datos y APIs
 
 ---
 
@@ -140,16 +140,16 @@ from fastapi import FastAPI        # Librería externa instalada con pip
 
 ```bash
 pip install fastapi        # Instalar FastAPI
-pip install celery         # Instalar Celery
-pip install anthropic      # Instalar la librería de Claude
+pip install redis          # Instalar cliente de Redis
+pip install anthropic      # Instalar un proveedor LLM candidato
 ```
 
 En el proyecto, todas las dependencias están listadas en `requirements.txt`:
 
 ```
 fastapi==0.111.0
-celery==5.3.6
 anthropic==0.25.0
+redis==5.0.0
 pgvector==0.3.0
 sqlalchemy==2.0.30
 ```
@@ -200,8 +200,9 @@ backend/
     │   └── caregiver.py      # Endpoints del cuidador
     │
     ├── agent/                # Lógica del agente IA
-    │   ├── agent.py          # El agente principal (Claude + tools)
-    │   └── tools.py          # Definición de las tools MCP
+    │   ├── agent.py          # El agente principal (LLM + tools)
+    │   ├── llm_provider.py   # Adaptador del proveedor de IA
+    │   └── tools.py          # Definición de tools internas
     │
     ├── models/               # Modelos de base de datos
     │   ├── account.py        # Tabla accounts
@@ -214,9 +215,6 @@ backend/
     │   ├── conversation.py
     │   ├── diary.py
     │   └── ...
-    │
-    ├── workers/              # Tareas asíncronas (Celery)
-    │   └── tasks.py          # generate_embedding, save_person, etc.
     │
     └── scheduler/            # Notificaciones programadas
         └── jobs.py           # check_reminders, send_proactive_memory, etc.
@@ -232,7 +230,7 @@ Las claves secretas (contraseñas de BD, claves de API) **nunca** se escriben di
 # .env (nunca subir a GitHub)
 DATABASE_URL=postgresql://user:password@localhost:5432/memorycompanion
 REDIS_URL=redis://localhost:6379
-ANTHROPIC_API_KEY=sk-ant-...
+LLM_API_KEY=...
 SECRET_KEY=mi_clave_secreta_para_jwt
 ```
 
@@ -245,7 +243,7 @@ from dotenv import load_dotenv
 load_dotenv()  # Carga el archivo .env
 
 database_url = os.getenv("DATABASE_URL")
-api_key = os.getenv("ANTHROPIC_API_KEY")
+api_key = os.getenv("LLM_API_KEY")
 ```
 
 ---
@@ -256,38 +254,36 @@ Para que sea concreto, así es como se vería el endpoint de enviar un mensaje a
 
 ```python
 from fastapi import FastAPI, Depends
-from anthropic import Anthropic
+from app.agent.llm_provider import llm_provider
 
 app = FastAPI()
-client = Anthropic()
 
 @app.post("/conversations/{conversation_id}/messages")
 async def send_message(conversation_id: str, body: MessageInput, user=Depends(get_current_user)):
     # 1. Recuperar historial de la BD
     history = await get_conversation_history(conversation_id)
 
-    # 2. Llamar al agente IA
-    response = client.messages.create(
-        model="claude-sonnet-4-5",
+    # 2. Llamar al agente IA mediante un proveedor intercambiable
+    response = await llm_provider.generate_response(
         system=SYSTEM_PROMPT,
         messages=history + [{"role": "user", "content": body.content}],
-        tools=MCP_TOOLS
+        tools=AGENT_TOOLS
     )
 
     # 3. Guardar mensaje en BD
     await save_message(conversation_id, body.content, response.content)
 
-    # 4. Delegar extracción de datos a Celery (asíncrono)
-    extract_and_save_data.delay(conversation_id, response.content, user.id)
+    # 4. Extraer datos detectados de forma ligera en el MVP
+    await extract_and_save_data(conversation_id, response.content, user.id)
 
     # 5. Devolver respuesta
     return {"content": response.content, "role": "assistant"}
 ```
 
 - `@app.post(...)` — el decorador indica que esta función responde a peticiones POST en esa ruta
-- `async def` — función asíncrona para no bloquear mientras espera la respuesta de Claude
+- `async def` — función asíncrona para no bloquear mientras espera la respuesta del proveedor LLM
 - `Depends(get_current_user)` — verifica automáticamente el token JWT del usuario
-- `.delay(...)` — encola la tarea en Celery sin esperar a que termine
+- `llm_provider` — permite cambiar de proveedor sin reescribir todos los endpoints
 
 ---
 

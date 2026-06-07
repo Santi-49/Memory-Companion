@@ -83,12 +83,14 @@ direct_family | family | friend | acquaintance | other
 
 Si intentas guardar `"colega"`, la base de datos lo rechaza automáticamente.
 
-### VECTOR(1536)
-Un tipo especial de PostgreSQL (extensión pgvector). Guarda una lista de 1536 números decimales que representan el "significado" de un texto (embedding).
+### VECTOR
+Un tipo especial de PostgreSQL (extensión pgvector). Guarda una lista de números decimales que representan el "significado" de un texto (embedding).
 
 ```
-[0.023, -0.451, 0.892, 0.103, ... ]  ← 1536 números
+[0.023, -0.451, 0.892, 0.103, ... ]
 ```
+
+La cantidad exacta de números depende del proveedor y del modelo de embeddings que se elija. Por eso el diseño del MVP no fija todavía una dimensión concreta como `VECTOR(1536)`.
 
 No está pensado para que lo lea un humano — es para que el sistema pueda hacer búsquedas semánticas. Ver [GUIDE_RAG.md](./GUIDE_RAG.md) para más detalle.
 
