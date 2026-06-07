@@ -12,6 +12,7 @@ MemoryCompanion esta pensada como un compañero sencillo de voz o texto. El usua
 | [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md)           | Arquitectura del sistema, servicios, Redis, scheduler y flujo de peticiones |
 | [docs/DATA_MODEL.md](./docs/DATA_MODEL.md)               | Modelo de datos propuesto, fechas parciales, ubicaciones y recurrencias     |
 | [docs/AI_DESIGN.md](./docs/AI_DESIGN.md)                 | Diseño del agente, tools, RAG, embeddings y proveedor de IA                 |
+| [docs/PROJECT_RISKS.md](./docs/PROJECT_RISKS.md)         | Riesgos principales del proyecto y mitigaciones propuestas                  |
 | [docs/GUIDE_TECH_STACK.md](./docs/GUIDE_TECH_STACK.md)   | Guia educativa del stack tecnico                                            |
 | [docs/GUIDE_API.md](./docs/GUIDE_API.md)                 | Conceptos de API, HTTP, JSON y autenticacion                                |
 | [docs/GUIDE_DEPLOYMENT.md](./docs/GUIDE_DEPLOYMENT.md)   | Desarrollo local, tunel y despliegue                                        |
@@ -41,7 +42,8 @@ MemoryCompanion esta pensada como un compañero sencillo de voz o texto. El usua
 | Backend          | FastAPI (Python)                   | API, logica de negocio y conexion con IA                       |
 | Base de datos    | PostgreSQL + pgvector              | Datos relacionales y busqueda semantica                        |
 | IA               | Proveedor LLM por definir          | Conversacion, extraccion y razonamiento                        |
-| Tools            | Tool calling interno; MCP opcional | Acceso controlado del agente a datos y acciones                |
+| Abstraccion IA   | LangChain                          | Capa comun para modelos, prompts, tools, RAG y embeddings      |
+| Tools            | LangChain tools; MCP opcional      | Acceso controlado del agente a datos y acciones                |
 | Redis            | Redis                              | Invalidacion de JWT, invitaciones de cuidadores y cache ligera |
 | Notificaciones   | Expo Push + APScheduler            | Avisos programados en el MVP                                   |
 | Desarrollo local | Docker Compose                     | Levantar API, BD y servicios locales                           |
@@ -58,7 +60,7 @@ FastAPI
    |
    |-- PostgreSQL + pgvector
    |-- Redis
-   |-- LLM provider
+   |-- LangChain -> LLM provider
    |-- APScheduler -> Expo Push
 ```
 
@@ -133,5 +135,6 @@ La primera pantalla debe priorizar una accion principal clara: hablar o escribir
     ├── ARCHITECTURE.md
     ├── DATA_MODEL.md
     ├── AI_DESIGN.md
+    ├── PROJECT_RISKS.md
     └── GUIDE_*.md
 ```

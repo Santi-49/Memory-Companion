@@ -15,21 +15,36 @@ El agente debe conversar de forma amable, clara y paciente. Sus responsabilidade
 
 El proveedor aun no esta cerrado. Claude, OpenAI o Gemini son opciones razonables.
 
-Para evitar acoplamiento temprano, el backend deberia tener una capa interna:
+Para evitar acoplamiento temprano, el backend usara LangChain como capa de abstraccion sobre modelos, prompts, tools y RAG. Encima de LangChain conviene mantener una capa interna propia:
 
 ```text
-LLMProvider
+AgentService
   |-- generate_response(...)
-  |-- call_tools(...)
   |-- summarize_conversation(...)
   |-- extract_structured_data(...)
+
+EmbeddingService
+  |-- embed_text(...)
+  |-- embed_documents(...)
 ```
 
 Claude puede ser el primer candidato para conversacion, pero el README no debe asumirlo como decision irreversible.
 
+## LangChain
+
+LangChain actua como capa comun para:
+
+- Cambiar entre proveedores LLM sin reescribir todo el agente.
+- Definir prompts reutilizables.
+- Declarar tools con entradas/salidas estructuradas.
+- Construir flujos RAG con retrievers.
+- Integrar embeddings de distintos proveedores.
+
+No deberia sustituir la logica de dominio. Las reglas importantes del producto, permisos, filtros por cuenta y validaciones deben vivir en servicios propios del backend.
+
 ## Tools
 
-El MVP puede empezar con tool calling interno desde FastAPI. MCP queda como opcion si mas adelante interesa exponer herramientas de forma estandarizada.
+El MVP puede empezar con LangChain tools ejecutadas por servicios internos de FastAPI. MCP queda como opcion si mas adelante interesa exponer herramientas de forma estandarizada.
 
 ### Lectura
 
@@ -69,6 +84,7 @@ El proveedor aun no esta definido. Por eso:
 - No fijar `VECTOR(1536)` en documentacion de producto.
 - Guardar `embedding_model` junto al vector.
 - Centralizar la generacion de embeddings.
+- Encapsular embeddings tras `EmbeddingService`, aunque internamente use LangChain.
 - Preparar migracion si se cambia de modelo.
 
 Opciones futuras:

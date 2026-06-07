@@ -140,6 +140,7 @@ from fastapi import FastAPI        # Librería externa instalada con pip
 
 ```bash
 pip install fastapi        # Instalar FastAPI
+pip install langchain      # Instalar LangChain
 pip install redis          # Instalar cliente de Redis
 pip install anthropic      # Instalar un proveedor LLM candidato
 ```
@@ -148,6 +149,7 @@ En el proyecto, todas las dependencias están listadas en `requirements.txt`:
 
 ```
 fastapi==0.111.0
+langchain==0.2.0
 anthropic==0.25.0
 redis==5.0.0
 pgvector==0.3.0
@@ -200,8 +202,9 @@ backend/
     │   └── caregiver.py      # Endpoints del cuidador
     │
     ├── agent/                # Lógica del agente IA
-    │   ├── agent.py          # El agente principal (LLM + tools)
+    │   ├── agent.py          # El agente principal (LangChain + LLM + tools)
     │   ├── llm_provider.py   # Adaptador del proveedor de IA
+    │   ├── embeddings.py     # Servicio de embeddings
     │   └── tools.py          # Definición de tools internas
     │
     ├── models/               # Modelos de base de datos

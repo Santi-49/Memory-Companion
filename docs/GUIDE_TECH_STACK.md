@@ -27,7 +27,7 @@
 │                                    │  PostgreSQL + pgvector  │ │
 │                                    └─────────────────────────┘ │
 │                                                                 │
-│  FastAPI ──► LLM Provider ──► Tools internas / MCP opcional    │
+│  FastAPI ──► LangChain ──► LLM Provider / Tools / RAG          │
 └─────────────────────────────────────────────────────────────────┘
                             │
                     Cloudflare Tunnel
@@ -72,6 +72,12 @@
 - **Futuro**: Celery, RQ o Dramatiq si hacen falta retries robustos o workers separados
 - **Ver**: [GUIDE_ASYNC.md](./GUIDE_ASYNC.md)
 
+### LangChain
+- **Qué es**: librería para construir aplicaciones con LLMs usando modelos, prompts, tools, chains, retrievers y embeddings
+- **Por qué**: permite cambiar de proveedor LLM con menos fricción y organizar el agente de forma más estándar
+- **Uso en el MVP**: capa interna del backend para conversación, tools, RAG y embeddings
+- **Cuidado**: no debe contener reglas de negocio; permisos, validaciones y acceso a datos siguen en servicios propios de FastAPI
+
 ### APScheduler
 - **Qué es**: librería Python para ejecutar funciones en horarios programados
 - **Por qué**: gestiona el envío de recordatorios y notificaciones proactivas a la hora correcta
@@ -102,12 +108,13 @@
 ### Proveedor LLM
 - **Qué es**: API para acceder a un modelo de lenguaje como Claude, OpenAI o Gemini
 - **Por qué**: genera la conversación, resume, extrae datos estructurados y decide cuándo usar tools
+- **Cómo se integra**: a través de LangChain y adaptadores propios del backend
 - **Estado**: proveedor por definir; Claude es una opción candidata
 - **Ver**: [GUIDE_AI_AGENT.md](./GUIDE_AI_AGENT.md)
 
 ### Tools / MCP
 - **Qué es**: capa que permite al agente buscar datos o ejecutar acciones
-- **MVP**: tool calling interno desde FastAPI
+- **MVP**: LangChain tools que llaman a servicios internos de FastAPI
 - **Futuro**: MCP si interesa estandarizar herramientas reutilizables
 - **Ver**: [GUIDE_AI_AGENT.md](./GUIDE_AI_AGENT.md)
 
@@ -145,6 +152,7 @@
 | React Native | Frontend | Gratis | Media |
 | Expo / Expo Go | Frontend | Gratis (dev) | Baja |
 | FastAPI | Backend | Gratis | Media |
+| LangChain | IA Backend | Gratis | Media |
 | Tareas en segundo plano | Backend | Gratis | Baja-Media |
 | APScheduler | Backend | Gratis | Baja |
 | PostgreSQL | Base de datos | Gratis | Baja |
